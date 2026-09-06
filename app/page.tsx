@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { defaultBrief } from "@/lib/engine";
 import { dataUrl, elevSvg, isoSvg, planSvg, siteSvg } from "@/lib/draw";
 import { usd } from "@/lib/money";
-import type { Brief, Finish, Packet, Scheme, UseCase } from "@/lib/types";
+import type { Brief, Finish, Packet, UseCase } from "@/lib/types";
 
 const USES: { id: UseCase; label: string }[] = [
   { id: "shop", label: "Shop" }, { id: "studio", label: "Studio" }, { id: "garage", label: "Garage" },
@@ -63,12 +63,12 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-[#12100c] text-[#efe8db]">
       <header className="no-print mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <div><p className="font-display text-2xl">Plotforge</p><p className="text-xs uppercase tracking-[0.22em] text-[#c9a227]">snap any space. design it. bid it legally.</p></div>
+        <div><p className="font-display text-2xl">Plotforge</p><p className="text-xs uppercase tracking-[0.22em] text-[#c9a227]">design + local-sub bid packets</p></div>
         {packet && <button onClick={() => window.print()} className="rounded-full border border-white/15 px-4 py-2 text-sm">Print packet</button>}
       </header>
       <section className="no-print mx-auto max-w-6xl px-5 pb-6">
-        <h1 className="max-w-3xl font-display text-4xl leading-tight sm:text-5xl">Snap any space. Design any space. Walk out with trade plans, licenses, and a legal-ready bid packet.</h1>
-        <p className="mt-4 max-w-2xl text-[#efe8db]/70">Camera or upload a yard, room, garage, or bay. The Clerk maps Oregon CCB / BCD licenses, Hillsboro or Washington County permits, inspections, and bid clauses. A bid is only legal after a licensed contractor prints a live CCB number on page 1 and the city stamps required drawings.</p>
+        <h1 className="max-w-3xl font-display text-4xl leading-tight sm:text-5xl">Snap the space. Design three options. Local shops build every one of them.</h1>
+        <p className="mt-4 max-w-2xl text-[#efe8db]/70">Plotforge never puts a crew on site. Building, landscaping, construction, equipment operating, excavation, and tree work are subcontracted to local licensed businesses. You get designs, trade plans, and bid packages those shops answer. A bid is only legal after a local contractor prints a live CCB number on page 1 and the city stamps required drawings.</p>
       </section>
       <section className="no-print mx-auto grid max-w-6xl gap-6 px-5 pb-10 lg:grid-cols-2">
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/30">
@@ -109,12 +109,16 @@ export default function Page() {
           <div className="mt-3 flex gap-2 text-sm">
             {(["flat","gentle","steep"] as const).map((s) => <button key={s} onClick={() => setBrief({ ...brief, slope: s })} className={`rounded-full px-3 py-1 capitalize ${brief.slope === s ? "border border-[#c9a227] text-[#c9a227]" : "border border-white/10"}`}>{s}</button>)}
           </div>
-          <button onClick={forge} disabled={busy} className="mt-5 w-full rounded-2xl bg-[#c9a227] py-3 text-lg text-[#12100c]">{busy ? "Forging..." : "Forge 3 designs + legal bids"}</button>
+          <button onClick={forge} disabled={busy} className="mt-5 w-full rounded-2xl bg-[#c9a227] py-3 text-lg text-[#12100c]">{busy ? "Forging..." : "Forge 3 designs + local-sub bids"}</button>
           {err && <p className="mt-3 text-[#d0733a]">{err}</p>}
         </div>
       </section>
       {packet && scheme && (
         <section className="mx-auto max-w-6xl px-5 pb-24">
+          <div className="mb-5 rounded-2xl border border-[#c9a227]/40 bg-[#c9a227]/10 p-4 text-sm">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#c9a227]">delivery model</p>
+            <p className="mt-2">{scheme.deliveryModel}</p>
+          </div>
           <div className="no-print mb-5 flex flex-wrap gap-2">
             {packet.schemes.map((s, i) => (
               <button key={s.id} onClick={() => setActive(i)} className={`rounded-2xl border px-4 py-3 text-left ${i === active ? "border-[#c9a227] bg-[#c9a227]/10" : "border-white/10"}`}>
@@ -126,7 +130,7 @@ export default function Page() {
           </div>
           <div className="no-print mb-5 flex flex-wrap gap-2">
             {(["looks","plans","trades","bid","clerk"] as const).map((id) => (
-              <button key={id} onClick={() => setTab(id)} className={`rounded-full px-4 py-2 text-sm ${tab === id ? "bg-[#efe8db] text-[#12100c]" : "border border-white/10"}`}>{id === "clerk" ? "Clerk / legality" : id === "bid" ? "Legal bid" : id === "plans" ? "Trade plans" : id}</button>
+              <button key={id} onClick={() => setTab(id)} className={`rounded-full px-4 py-2 text-sm ${tab === id ? "bg-[#efe8db] text-[#12100c]" : "border border-white/10"}`}>{id === "clerk" ? "Clerk / legality" : id === "bid" ? "Local-sub bids" : id === "plans" ? "Trade plans" : id === "trades" ? "Sub packages" : id}</button>
             ))}
           </div>
           <article className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
@@ -157,7 +161,8 @@ export default function Page() {
                   const lic = scheme.legal.tradeLicenses.find((x) => x.trade === t.trade);
                   return (
                     <div key={t.trade} className="rounded-2xl border border-white/10 p-4">
-                      <div className="flex justify-between"><h3 className="font-display text-2xl">{t.trade}</h3><p className="text-[#c9a227]">{usd(t.subtotal)}</p></div>
+                      <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-display text-2xl">{t.trade}</h3><p className="text-[#c9a227]">{usd(t.subtotal)}</p></div>
+                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[#c9a227]">local sub · {t.localShopType}</p>
                       <p className="mt-2 text-sm text-white/70">{t.scope}</p>
                       <div className="mt-3 rounded-xl border border-[#c9a227]/30 p-3 text-sm">
                         <p className="text-xs uppercase text-[#c9a227]">licenses to bid this trade</p>
@@ -173,13 +178,13 @@ export default function Page() {
             {tab === "bid" && (
               <div className="mt-6 space-y-4">
                 <div className="rounded-2xl border border-[#c9a227]/40 bg-[#c9a227]/10 p-4 text-sm">
-                  <p className="text-xs uppercase text-[#c9a227]">legal bid header — contractor fills</p>
-                  <p className="mt-2">Contractor: __________  CCB #: __________ (required on page 1)</p>
+                  <p className="text-xs uppercase text-[#c9a227]">local-sub bid header — each shop fills their own</p>
+                  <p className="mt-2">Local contractor: __________  CCB #: __________ (required on page 1)</p>
                   <p>BCD electrical #: __________  BCD plumbing #: __________</p>
                   <p className="mt-2 text-white/70">{scheme.legal.cannotClaim}</p>
                 </div>
-                <p>{usd(scheme.bidLow)} - {usd(scheme.bidHigh)} · {scheme.timelineWeeks} weeks</p>
-                <table className="w-full text-sm"><tbody>{scheme.trades.map((t) => <tr key={t.trade} className="border-t border-white/10"><td className="py-2">{t.trade}</td><td>{usd(t.subtotal)}</td></tr>)}</tbody></table>
+                <p>{usd(scheme.bidLow)} - {usd(scheme.bidHigh)} · {scheme.timelineWeeks} weeks · all field work local</p>
+                <table className="w-full text-sm"><tbody>{scheme.trades.map((t) => <tr key={t.trade} className="border-t border-white/10"><td className="py-2">{t.trade}<span className="block text-xs text-white/40">{t.localShopType}</span></td><td>{usd(t.subtotal)}</td></tr>)}</tbody></table>
                 <ul className="list-disc pl-5 text-sm text-white/70">{scheme.legal.bidClauses.map((c) => <li key={c}>{c}</li>)}</ul>
               </div>
             )}
@@ -188,7 +193,7 @@ export default function Page() {
                 <p className="text-lg">{scheme.legal.verdict}</p>
                 <p className="text-sm text-white/60">{scheme.legal.cannotClaim}</p>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Do I need a permit?" className="flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2" />
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Who actually builds this?" className="flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2" />
                   <button onClick={ask} className="rounded-xl bg-[#c9a227] px-4 py-2 text-[#12100c]">Ask Clerk</button>
                 </div>
                 {a && <p className="text-sm text-white/75">{a}</p>}
