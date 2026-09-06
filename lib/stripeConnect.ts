@@ -3,9 +3,7 @@ import { cookies } from "next/headers";
 
 export type StripeLink = {
   accountId: string;
-  accessToken: string;
   livemode: boolean;
-  scope: string;
 };
 
 const COOKIE = "pf_stripe";
@@ -31,8 +29,7 @@ export function open(token: string): StripeLink | null {
     const data = buf.subarray(28);
     const d = createDecipheriv("aes-256-gcm", key(), iv);
     d.setAuthTag(tag);
-    const json = Buffer.concat([d.update(data), d.final()]).toString("utf8");
-    return JSON.parse(json) as StripeLink;
+    return JSON.parse(Buffer.concat([d.update(data), d.final()]).toString("utf8")) as StripeLink;
   } catch {
     return null;
   }

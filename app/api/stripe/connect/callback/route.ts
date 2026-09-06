@@ -24,14 +24,12 @@ export async function GET(req: NextRequest) {
     body,
   });
   const data = await res.json();
-  if (!res.ok || !data.stripe_user_id || !data.access_token) {
+  if (!res.ok || !data.stripe_user_id) {
     return NextResponse.redirect(`${origin}/settings/stripe?error=token`);
   }
   await writeLink({
     accountId: data.stripe_user_id,
-    accessToken: data.access_token,
     livemode: Boolean(data.livemode),
-    scope: data.scope || "read_write",
   });
   return NextResponse.redirect(`${origin}/settings/stripe?linked=1`);
 }
