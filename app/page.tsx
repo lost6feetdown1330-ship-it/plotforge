@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { defaultBrief } from "@/lib/engine";
-import { dataUrl, elevSvg, isoSvg, planSvg, siteSvg } from "@/lib/draw";
+import { dataUrl, elevSvg, isoSvg, planSvg, sheetIdFor, siteSvg, tradeBlueprint } from "@/lib/draw";
 import { usd } from "@/lib/money";
 import type { Brief, Finish, Packet, UseCase } from "@/lib/types";
 
@@ -26,7 +26,7 @@ export default function Page() {
   const [packet, setPacket] = useState<Packet | null>(null);
   const [active, setActive] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<"looks" | "plans" | "trades" | "bid" | "clerk" | "board">("board");
+  const [tab, setTab] = useState<"looks" | "plans" | "prints" | "trades" | "bid" | "clerk" | "board">("board");
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [a, setA] = useState("");
@@ -56,7 +56,7 @@ export default function Page() {
       const res = await fetch("/api/design", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brief }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Forge failed");
-      setPacket(data.packet); setActive(0); setTab("board");
+      setPacket(data.packet); setActive(0); setTab("prints");
     } catch (e) { setErr(e instanceof Error ? e.message : "Forge failed"); }
     finally { setBusy(false); }
   }
@@ -91,7 +91,7 @@ export default function Page() {
           <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-12">
             <p className="kpi text-[#d4b56a]">Cinematic design desk</p>
             <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-7xl">Snap the space.<br />Design the building.<br />Local shops execute.</h1>
-            <p className="mt-4 max-w-xl text-sm text-white/70 sm:text-base">HD capture, three schemes, trade drawings, and legal-ready bid packets. Plotforge never puts a crew on site.</p>
+            <p className="mt-4 max-w-xl text-sm text-white/70 sm:text-base">HD capture, three schemes, a blueprint for every trade, and legal-ready bid packets. Plotforge never puts a crew on site.</p>
           </div>
         </div>
       </section>
@@ -149,7 +149,7 @@ export default function Page() {
           <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {[
               ["Range", `${usd(scheme.bidLow)} – ${usd(scheme.bidHigh)}`],
-              ["Local packages", String(scheme.trades.length)],
+              ["Trade prints", String(scheme.trades.length)],
               ["Required gates", String(requiredGates)],
               ["Field weeks", scheme.timelineWeeks],
               ["Delivery", "Local subs only"],
@@ -179,9 +179,9 @@ export default function Page() {
           </div>
 
           <div className="no-print mb-5 flex flex-wrap gap-2">
-            {(["board","looks","plans","trades","bid","clerk"] as const).map((id) => (
+            {(["board","looks","prints","plans","trades","bid","clerk"] as const).map((id) => (
               <button key={id} onClick={() => setTab(id)} className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.16em] ${tab === id ? "bg-[#f3ead7] text-[#07080b]" : "border border-white/10"}`}>
-                {id === "clerk" ? "Clerk" : id === "bid" ? "Bids" : id === "plans" ? "Drawings" : id === "trades" ? "Packages" : id === "board" ? "Dashboard" : "Looks"}
+                {id === "clerk" ? "Clerk" : id === "bid" ? "Bids" : id === "plans" ? "Index" : id === "trades" ? "Packages" : id === "board" ? "Dashboard" : id === "prints" ? "Blueprints" : "Looks"}
               </button>
             ))}
           </div>
@@ -222,7 +222,7 @@ export default function Page() {
             {tab === "looks" && (
               <div className="mt-8 grid gap-4 md:grid-cols-2">
                 {[
-                  { t: "On your lot", img: photo, svg: isoSvg(packet.brief, scheme), vid: null },
+                  { t: "On your lot", img: photo, svg: isoSvg(packet.brief, scheme), vid: null as string | null },
                   { t: "Massing reel", img: null, svg: isoSvg(packet.brief, scheme), vid: REEL[0] },
                   { t: "Street elevation", img: null, svg: elevSvg(packet.brief, scheme), vid: REEL[1] },
                   { t: "Dusk volume", img: null, svg: isoSvg(packet.brief, scheme, true), vid: REEL[2] },
@@ -242,6 +242,25 @@ export default function Page() {
               </div>
             )}
 
+            {tab === "prints" && (
+              <div className="mt-8 space-y-8">
+                <p className="text-sm text-white/55">One working drawing per trade used on this scheme. Conceptual — a licensed designer redraws these on a stamped title block before permit.</p>
+                {scheme.trades.map((t, i) => (
+                  <figure key={t.trade} className="overflow-hidden rounded-2xl border border-white/10 bg-[#0a2f5c]">
+                    <div className="flex flex-wrap items-end justify-between gap-2 px-4 py-3">
+                      <div>
+                        <p className="kpi text-[#9ec4e8]">{sheetIdFor(t.trade, i)} · local sub</p>
+                        <p className="font-display text-2xl text-[#d6ecff]">{t.trade}</p>
+                        <p className="text-xs text-[#9ec4e8]">{t.localShopType}</p>
+                      </div>
+                      <p className="text-[#d6ecff]">{usd(t.subtotal)}</p>
+                    </div>
+                    <img src={dataUrl(tradeBlueprint(packet.brief, scheme, t, i))} alt={`${t.trade} blueprint`} className="w-full" />
+                  </figure>
+                ))}
+              </div>
+            )}
+
             {tab === "plans" && (
               <div className="mt-8 space-y-4">
                 <img src={dataUrl(siteSvg(packet.brief))} alt="site" className="w-full rounded-2xl border border-white/10" />
@@ -251,14 +270,15 @@ export default function Page() {
             )}
 
             {tab === "trades" && (
-              <div className="mt-8 space-y-4">
-                {scheme.trades.map((t) => {
+              <div className="mt-8 space-y-6">
+                {scheme.trades.map((t, i) => {
                   const lic = scheme.legal.tradeLicenses.find((x) => x.trade === t.trade);
                   return (
                     <div key={t.trade} className="rounded-2xl border border-white/10 p-5">
                       <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-display text-3xl">{t.trade}</h3><p className="text-[#d4b56a]">{usd(t.subtotal)}</p></div>
-                      <p className="kpi mt-2 text-[#d4b56a]">Local sub · {t.localShopType}</p>
+                      <p className="kpi mt-2 text-[#d4b56a]">{sheetIdFor(t.trade, i)} · local sub · {t.localShopType}</p>
                       <p className="mt-2 text-sm text-white/70">{t.scope}</p>
+                      <img src={dataUrl(tradeBlueprint(packet.brief, scheme, t, i))} alt={`${t.trade} blueprint`} className="mt-4 w-full rounded-xl border border-white/10" />
                       <div className="mt-3 rounded-xl border border-[#d4b56a]/25 p-3 text-sm">
                         <p className="kpi text-[#d4b56a]">Licenses</p>
                         <ul className="mt-2 list-disc pl-5">{(t.licenses || lic?.licenses || ["Oregon CCB"]).map((x) => <li key={x}>{x}</li>)}</ul>
@@ -280,7 +300,7 @@ export default function Page() {
                   <p className="mt-3 text-white/70">{scheme.legal.cannotClaim}</p>
                 </div>
                 <p className="font-display text-3xl">{usd(scheme.bidLow)} – {usd(scheme.bidHigh)} <span className="text-base text-white/40">· {scheme.timelineWeeks} weeks</span></p>
-                <table className="w-full text-sm"><tbody>{scheme.trades.map((t) => <tr key={t.trade} className="border-t border-white/10"><td className="py-3">{t.trade}<span className="block text-xs text-white/35">{t.localShopType}</span></td><td className="text-right">{usd(t.subtotal)}</td></tr>)}</tbody></table>
+                <table className="w-full text-sm"><tbody>{scheme.trades.map((t, i) => <tr key={t.trade} className="border-t border-white/10"><td className="py-3">{sheetIdFor(t.trade, i)} · {t.trade}<span className="block text-xs text-white/35">{t.localShopType}</span></td><td className="text-right">{usd(t.subtotal)}</td></tr>)}</tbody></table>
                 <ul className="list-disc pl-5 text-sm text-white/70">{scheme.legal.bidClauses.map((c) => <li key={c}>{c}</li>)}</ul>
               </div>
             )}
