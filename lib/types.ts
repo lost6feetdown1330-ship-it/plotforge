@@ -43,6 +43,8 @@ export type TradePackage = {
   lines: TradeLine[];
   laborHours: number;
   subtotal: number;
+  delivery: "local-sub";
+  localShopType: string;
   licenses?: string[];
   whoMayAct?: string;
   bidRule?: string;
@@ -115,6 +117,7 @@ export type Scheme = {
   permits: string[];
   risks: string[];
   legal: LegalPacket;
+  deliveryModel: string;
 };
 
 export type Packet = {

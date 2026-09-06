@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     brief: merged,
     generatedAt: new Date().toISOString(),
     disclaimer:
-      "Plotforge packets are conceptual design and budget studies. They are not stamped plans, not a contractor bid, and not permission to build. Oregon structures need permits, 811 locates, and licensed trades for electrical and plumbing. Hire a designer of record before you pour anything.",
+      "Plotforge designs and packages bids only. All physical work — building, landscaping, construction, equipment operating, excavation, and tree work — is subcontracted to local licensed businesses. Packets are not stamped plans, not a contractor bid, and not permission to build. Oregon structures need permits, 811 locates, and licensed trades. Hire a designer of record before anyone pours.",
     schemes,
   };
   return NextResponse.json({ packet });
