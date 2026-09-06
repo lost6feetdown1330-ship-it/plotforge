@@ -1,12 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { defaultBrief } from "@/lib/engine";
 import { dataUrl, elevSvg, isoSvg, planSvg, sheetIdFor, siteSvg, tradeBlueprint } from "@/lib/draw";
 import { soAtlasSvg } from "@/lib/soMap";
 import { SoPicker } from "@/components/SoPicker";
+import { Paywall } from "@/components/Paywall";
+import { readEntitlement } from "@/components/PayButton";
+import { canUnlockFull, type Entitlement } from "@/lib/billing";
 import { usd } from "@/lib/money";
-import type { Brief, Finish, Packet, UseCase } from "@/lib/types";
+import type { Brief, Packet, UseCase } from "@/lib/types";
 
 const USES: { id: UseCase; label: string }[] = [
   { id: "shop", label: "Shop" }, { id: "studio", label: "Studio" }, { id: "garage", label: "Garage" },
@@ -32,9 +36,17 @@ export default function Page() {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [a, setA] = useState("");
+  const [ent, setEnt] = useState<Entitlement | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  useEffect(() => () => stopCam(), []);
+  useEffect(() => {
+    setEnt(readEntitlement());
+    const on = () => setEnt(readEntitlement());
+    window.addEventListener("storage", on);
+    const id = window.setInterval(on, 1200);
+    return () => { stopCam(); window.removeEventListener("storage", on); window.clearInterval(id); };
+  }, []);
+  const paid = canUnlockFull(ent);
   function stopCam() { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; setCamOn(false); }
   async function startCam() {
     setErr("");
@@ -58,7 +70,7 @@ export default function Page() {
       const res = await fetch("/api/design", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brief }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Forge failed");
-      setPacket(data.packet); setActive(0); setTab("prints");
+      setPacket(data.packet); setActive(0); setTab(paid ? "prints" : "looks");
     } catch (e) { setErr(e instanceof Error ? e.message : "Forge failed"); }
     finally { setBusy(false); }
   }
@@ -68,7 +80,6 @@ export default function Page() {
     const res = await fetch("/api/clerk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q, brief: packet.brief, schemeId: scheme.id, legal: scheme.legal, schemeName: scheme.name }) });
     const data = await res.json(); setA(data.reply || data.error || "No reply");
   }
-  const requiredGates = scheme?.legal.gates.filter((g) => g.status === "required").length ?? 0;
 
   return (
     <main className="min-h-screen">
@@ -78,21 +89,23 @@ export default function Page() {
             <span className="grid h-9 w-9 place-items-center rounded-full border border-[#d4b56a]/40 text-[10px] tracking-[0.2em] text-[#d4b56a]">PF</span>
             <div>
               <p className="font-display text-2xl leading-none">Plotforge Atelier</p>
-              <p className="kpi">Oregon atelier · Southern Oregon mapped</p>
+              <p className="kpi">Quiet prices · $9 a lot</p>
             </div>
           </div>
-          {packet && <button onClick={() => window.print()} className="rounded-full border border-white/15 px-4 py-2 text-xs tracking-[0.18em] uppercase">Print dossier</button>}
+          <div className="flex items-center gap-3">
+            <Link href="/pricing" className="text-xs uppercase tracking-[0.18em] text-[#d4b56a]">Seats from $9</Link>
+            {packet && paid && <button onClick={() => window.print()} className="rounded-full border border-white/15 px-4 py-2 text-xs tracking-[0.18em] uppercase">Print dossier</button>}
+          </div>
         </div>
       </header>
       <section className="no-print relative mx-auto max-w-7xl px-5 pb-8 pt-8">
         <div className="film relative overflow-hidden rounded-[28px] border border-white/10">
-          <video className="h-[46vh] min-h-[320px] w-full object-cover" autoPlay muted loop playsInline poster="">
+          <video className="h-[42vh] min-h-[280px] w-full object-cover" autoPlay muted loop playsInline>
             <source src={REEL[0]} type="video/mp4" />
           </video>
           <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-12">
-            <p className="kpi text-[#d4b56a]">Cinematic design desk</p>
-            <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-7xl">Snap the space.<br />Design the building.<br />Local shops execute.</h1>
-            <p className="mt-4 max-w-xl text-sm text-white/70 sm:text-base">Southern Oregon is on the atlas. Pick Medford, Ashland, Grants Pass, Roseburg, Klamath Falls, Brookings or a rural county and the Clerk files to that counter.</p>
+            <p className="kpi text-[#d4b56a]">Design desk · modest seats</p>
+            <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-6xl">Snap the space. Pay a lunch. Local shops build it.</h1>
           </div>
         </div>
       </section>
@@ -100,10 +113,7 @@ export default function Page() {
         <div className="film overflow-hidden rounded-[28px] border border-white/10">
           <div className="relative aspect-[16/10] bg-black">
             {camOn ? <video ref={videoRef} autoPlay playsInline className="h-full w-full object-cover" /> : photo ? (
-              <div className="relative h-full w-full">
-                <img src={photo} alt="Captured space" className="h-full w-full object-cover" />
-                {scheme && <div className="absolute left-[18%] top-[28%] h-[46%] w-[58%] border border-[#d4b56a] bg-[#d4b56a]/15" />}
-              </div>
+              <img src={photo} alt="Captured space" className="h-full w-full object-cover" />
             ) : (
               <video className="h-full w-full object-cover opacity-70" autoPlay muted loop playsInline>
                 <source src={REEL[1]} type="video/mp4" />
@@ -114,7 +124,7 @@ export default function Page() {
             {!camOn ? <button onClick={startCam} className="rounded-full bg-[#d4b56a] px-5 py-2 text-sm text-[#07080b]">Open HD camera</button> : (
               <><button onClick={snap} className="rounded-full bg-[#d4b56a] px-5 py-2 text-sm text-[#07080b]">Capture frame</button><button onClick={stopCam} className="rounded-full border border-white/15 px-4 py-2 text-sm">Cancel</button></>
             )}
-            <label className="cursor-pointer rounded-full border border-white/15 px-4 py-2 text-sm">Upload still<input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} /></label>
+            <label className="cursor-pointer rounded-full border border-white/15 px-4 py-2 text-sm">Upload still<input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} /></label>
           </div>
         </div>
         <div className="glass hairline rounded-[28px] p-6">
@@ -129,7 +139,7 @@ export default function Page() {
             {USES.map((u) => <button key={u.id} onClick={() => setBrief({ ...brief, useCase: u.id, indoor: u.id === "interior" || brief.indoor })} className={`rounded-full px-3 py-1.5 text-xs ${brief.useCase === u.id ? "bg-[#d4b56a] text-[#07080b]" : "border border-white/10"}`}>{u.label}</button>)}
           </div>
           <SoPicker brief={brief} setBrief={setBrief} />
-          <button onClick={forge} disabled={busy} className="mt-5 w-full rounded-2xl bg-[#d4b56a] py-3 text-sm tracking-[0.16em] uppercase text-[#07080b]">{busy ? "Composing atelier…" : "Compose three schemes"}</button>
+          <button onClick={forge} disabled={busy} className="mt-5 w-full rounded-2xl bg-[#d4b56a] py-3 text-sm tracking-[0.16em] uppercase text-[#07080b]">{busy ? "Composing…" : paid ? "Compose three schemes" : "Preview schemes · $9 to unlock"}</button>
           {err && <p className="mt-3 text-sm text-[#d0733a]">{err}</p>}
         </div>
       </section>
@@ -154,44 +164,42 @@ export default function Page() {
           <article className="glass hairline rounded-[28px] p-6 sm:p-8">
             <h2 className="font-display text-4xl">{scheme.name}</h2>
             <p className="mt-3 text-white/75">{scheme.pitch}</p>
-            {tab === "plans" && (
-              <div className="mt-8 space-y-4">
-                <img src={dataUrl(soAtlasSvg(packet.brief.region + " " + packet.brief.prompt))} alt="Southern Oregon atlas" className="w-full rounded-2xl border border-white/10" />
-                <img src={dataUrl(siteSvg(packet.brief))} alt="site" className="w-full rounded-2xl border border-white/10" />
-                <img src={dataUrl(planSvg(packet.brief, scheme))} alt="plan" className="w-full rounded-2xl border border-white/10" />
-              </div>
-            )}
-            {tab === "prints" && (
-              <div className="mt-8 space-y-8">
-                {scheme.trades.map((t, i) => (
-                  <figure key={t.trade} className="overflow-hidden rounded-2xl border border-white/10 bg-[#0a2f5c]">
-                    <p className="px-4 py-3 text-[#d6ecff]">{sheetIdFor(t.trade, i)} · {t.trade}</p>
-                    <img src={dataUrl(tradeBlueprint(packet.brief, scheme, t, i))} alt={`${t.trade} blueprint`} className="w-full" />
-                  </figure>
-                ))}
-              </div>
-            )}
-            {tab === "looks" && (
+            {(tab === "looks" || tab === "board") && (
               <div className="mt-8 grid gap-4 md:grid-cols-2">
                 <img src={dataUrl(isoSvg(packet.brief, scheme))} alt="iso" className="rounded-2xl" />
                 <img src={dataUrl(elevSvg(packet.brief, scheme))} alt="elev" className="rounded-2xl" />
               </div>
             )}
-            {tab === "board" && <div className="mt-8 text-sm text-white/70">{scheme.why.map((w) => <p key={w} className="border-b border-white/10 py-2">{w}</p>)}</div>}
-            {tab === "trades" && scheme.trades.map((t, i) => (
+            {!paid && (tab === "prints" || tab === "trades" || tab === "bid" || tab === "clerk" || tab === "plans") && (
+              <Paywall reason="Looks stay free. Blueprints, clerk maps, bids, and the Southern Oregon atlas sheet unlock with a $9 site packet — or $17/mo if you keep using the desk." />
+            )}
+            {paid && tab === "plans" && (
+              <div className="mt-8 space-y-4">
+                <img src={dataUrl(soAtlasSvg(packet.brief.region + " " + packet.brief.prompt))} alt="atlas" className="w-full rounded-2xl border border-white/10" />
+                <img src={dataUrl(siteSvg(packet.brief))} alt="site" className="w-full rounded-2xl" />
+                <img src={dataUrl(planSvg(packet.brief, scheme))} alt="plan" className="w-full rounded-2xl" />
+              </div>
+            )}
+            {paid && tab === "prints" && scheme.trades.map((t, i) => (
+              <figure key={t.trade} className="mt-8 overflow-hidden rounded-2xl bg-[#0a2f5c]">
+                <p className="px-4 py-3 text-[#d6ecff]">{sheetIdFor(t.trade, i)} · {t.trade}</p>
+                <img src={dataUrl(tradeBlueprint(packet.brief, scheme, t, i))} alt={t.trade} className="w-full" />
+              </figure>
+            ))}
+            {paid && tab === "trades" && scheme.trades.map((t, i) => (
               <div key={t.trade} className="mt-6 rounded-2xl border border-white/10 p-4">
                 <h3 className="font-display text-2xl">{t.trade}</h3>
-                <p className="text-xs text-[#d4b56a]">{sheetIdFor(t.trade, i)} · {t.localShopType}</p>
+                <p className="text-xs text-[#d4b56a]">{sheetIdFor(t.trade, i)} · {t.localShopType} · {usd(t.subtotal)}</p>
                 <img src={dataUrl(tradeBlueprint(packet.brief, scheme, t, i))} alt="" className="mt-3 w-full rounded-xl" />
               </div>
             ))}
-            {tab === "bid" && (
+            {paid && tab === "bid" && (
               <div className="mt-8">
                 <p className="font-display text-3xl">{usd(scheme.bidLow)} – {usd(scheme.bidHigh)}</p>
                 <ul className="mt-4 list-disc pl-5 text-sm text-white/70">{scheme.legal.bidClauses.map((c) => <li key={c}>{c}</li>)}</ul>
               </div>
             )}
-            {tab === "clerk" && (
+            {paid && tab === "clerk" && (
               <div className="mt-8 space-y-4">
                 <p>{scheme.legal.verdict}</p>
                 <div className="flex gap-2"><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Medford or county?" className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2" /><button onClick={ask} className="rounded-xl bg-[#d4b56a] px-4 py-2 text-[#07080b]">Ask Clerk</button></div>
@@ -201,13 +209,11 @@ export default function Page() {
                     <p className="font-display text-2xl">{g.title}</p>
                     <p className="kpi">{g.agency} · {g.status}</p>
                     <p className="mt-2 text-sm text-white/70">{g.why}</p>
-                    <p className="mt-1 text-sm text-white/45">{g.how}</p>
                   </div>
                 ))}
               </div>
             )}
           </article>
-          <p className="mt-6 text-xs text-white/35">{packet.disclaimer}</p>
         </section>
       )}
     </main>
