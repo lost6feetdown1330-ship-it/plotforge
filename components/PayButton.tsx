@@ -28,6 +28,10 @@ export function PayButton({ plan, label }: { plan: PlanId; label: string }) {
       const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Checkout failed");
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
       writeEntitlement(data.entitlement || entitle(plan));
       setMsg(data.message || "Unlocked on this browser.");
     } catch (e) {
@@ -38,7 +42,7 @@ export function PayButton({ plan, label }: { plan: PlanId; label: string }) {
   }
   return (
     <div>
-      <button onClick={pay} disabled={busy} className="rounded-full bg-[#d4b56a] px-4 py-2 text-sm text-[#07080b]">{busy ? "Recording…" : label}</button>
+      <button onClick={pay} disabled={busy} className="rounded-full bg-[#d4b56a] px-4 py-2 text-sm text-[#07080b]">{busy ? "Opening Stripe…" : label}</button>
       {msg && <p className="mt-2 text-xs text-white/50">{msg}</p>}
     </div>
   );
