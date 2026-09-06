@@ -6,9 +6,9 @@ const display = Fraunces({ subsets: ["latin"], variable: "--font-display" });
 const sans = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Plotforge — photograph a lot, forge designs, plans, and bids",
+  title: "Plotforge — snap any space, design it, bid it legally",
   description:
-    "Capture a yard or empty pad, generate multiple buildable design schemes with trade plans and conceptual bids.",
+    "Snap any yard, room, or pad. Generate designs, per-trade plans, license lists, permits, and a legal-ready Oregon bid packet.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

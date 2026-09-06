@@ -43,6 +43,12 @@ export type TradePackage = {
   lines: TradeLine[];
   laborHours: number;
   subtotal: number;
+  licenses: string[];
+  whoMayAct: string;
+  bidRule: string;
+  planNotes: string[];
+  inspections: string[];
+  permit: string;
 };
 
 export type PlanSheet = {
@@ -50,6 +56,7 @@ export type PlanSheet = {
   title: string;
   scale: string;
   notes: string[];
+  trade?: string;
 };
 
 export type GateStatus = "required" | "likely" | "if-triggered" | "owner-option" | "blocked";
@@ -83,6 +90,7 @@ export type LegalPacket = {
   bidClauses: string[];
   ownerNotice: string[];
   nextHuman: string[];
+  readiness: { item: string; doneBySoftware: boolean; ownerMust: string }[];
 };
 
 export type Scheme = {
