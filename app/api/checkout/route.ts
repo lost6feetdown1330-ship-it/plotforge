@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { ADDONS, entitle, PLANS, type PlanId } from "@/lib/billing";
+import { readLink } from "@/lib/stripeConnect";
+import { siteUrl } from "@/lib/secrets";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
@@ -11,18 +13,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Choose a paid seat." }, { status: 400 });
   }
 
-  const key = process.env.STRIPE_SECRET_KEY;
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    req.headers.get("origin") ||
-    "https://plotforge-mu.vercel.app";
+  const link = await readLink();
+  const key = link?.accessToken || process.env.STRIPE_SECRET_KEY;
+  const origin = siteUrl(req.headers.get("origin"));
 
   if (!key) {
     return NextResponse.json({
       ok: true,
       demo: true,
       entitlement: entitle(id),
-      message: "Stripe key not on this server yet. Desk unlocked here so you can keep testing.",
+      message: "No Stripe link yet. Connect Stripe in Settings, or add STRIPE_SECRET_KEY.",
     });
   }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         },
       },
     ],
-    metadata: { plan: plan.id },
+    metadata: { plan: plan.id, connected: link?.accountId || "platform" },
   });
 
   return NextResponse.json({ ok: true, demo: false, url: session.url });
