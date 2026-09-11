@@ -8,9 +8,13 @@ export type UseCase =
   | "interior"
   | "deck"
   | "commercial"
-  | "custom";
+  | "custom"
+  | "room"
+  | "roof";
 
 export type Finish = "budget" | "solid" | "pretty";
+
+export type SpaceTarget = "inside" | "outside" | "roof" | "both" | "room";
 
 export type Brief = {
   widthFt: number;
@@ -24,6 +28,7 @@ export type Brief = {
   hasWater: boolean;
   slope: "flat" | "gentle" | "steep";
   indoor: boolean;
+  spaceTarget: SpaceTarget;
 };
 
 export type TradeLine = {
