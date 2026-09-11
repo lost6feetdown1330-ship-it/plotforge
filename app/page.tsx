@@ -6,6 +6,7 @@ import { defaultBrief } from "@/lib/engine";
 import { dataUrl, elevSvg, isoSvg, planSvg, siteSvg } from "@/lib/draw";
 import { soAtlasSvg } from "@/lib/soMap";
 import { SoPicker } from "@/components/SoPicker";
+import { SpacePicker } from "@/components/SpacePicker";
 import { Paywall } from "@/components/Paywall";
 import { TradeBlueprints } from "@/components/TradeBlueprints";
 import { readEntitlement } from "@/components/PayButton";
@@ -90,7 +91,7 @@ export default function Page() {
             <span className="grid h-9 w-9 place-items-center rounded-full border border-[#d4b56a]/40 text-[10px] tracking-[0.2em] text-[#d4b56a]">PF</span>
             <div>
               <p className="font-display text-2xl leading-none">Plotforge Atelier</p>
-              <p className="kpi">Digital builder sheets · $9 a lot</p>
+              <p className="kpi">Any space · inside or out</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -105,8 +106,8 @@ export default function Page() {
             <source src={REEL[0]} type="video/mp4" />
           </video>
           <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-12">
-            <p className="kpi text-[#d4b56a]">One sheet per trade</p>
-            <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-6xl">Snap the space. Hand each shop a digital blueprint.</h1>
+            <p className="kpi text-[#d4b56a]">Room · roof · building · yard</p>
+            <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-6xl">Snap any space. Redesign inside, outside, or both.</h1>
           </div>
         </div>
       </section>
@@ -130,7 +131,7 @@ export default function Page() {
         </div>
         <div className="glass hairline rounded-[28px] p-6">
           <p className="kpi text-[#d4b56a]">Program brief</p>
-          <textarea value={brief.prompt} onChange={(e) => setBrief({ ...brief, prompt: e.target.value })} rows={3} className="mt-4 w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-sm outline-none" placeholder="12x24 shop in Medford…" />
+          <textarea value={brief.prompt} onChange={(e) => setBrief({ ...brief, prompt: e.target.value })} rows={3} className="mt-4 w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-sm outline-none" placeholder="Kitchen, roof, 12x24 shop, whole house face…" />
           <div className="mt-4 grid grid-cols-3 gap-2">
             {(["widthFt","depthFt","heightFt"] as const).map((k) => (
               <label key={k} className="kpi">{k.replace("Ft"," ft")}<input type="number" min={6} max={60} value={brief[k]} onChange={(e) => setBrief({ ...brief, [k]: Number(e.target.value) || 0 })} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 font-sans text-sm tracking-normal text-[#f3ead7]" /></label>
@@ -139,6 +140,7 @@ export default function Page() {
           <div className="mt-4 flex flex-wrap gap-2">
             {USES.map((u) => <button key={u.id} onClick={() => setBrief({ ...brief, useCase: u.id, indoor: u.id === "interior" || brief.indoor })} className={`rounded-full px-3 py-1.5 text-xs ${brief.useCase === u.id ? "bg-[#d4b56a] text-[#07080b]" : "border border-white/10"}`}>{u.label}</button>)}
           </div>
+          <SpacePicker brief={brief} setBrief={setBrief} />
           <SoPicker brief={brief} setBrief={setBrief} />
           <button onClick={forge} disabled={busy} className="mt-5 w-full rounded-2xl bg-[#d4b56a] py-3 text-sm tracking-[0.16em] uppercase text-[#07080b]">{busy ? "Composing…" : paid ? "Compose three schemes" : "Preview schemes · $9 to unlock"}</button>
           {err && <p className="mt-3 text-sm text-[#d0733a]">{err}</p>}
