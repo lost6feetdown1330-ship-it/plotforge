@@ -22,8 +22,16 @@ export function SpacePicker({ brief, setBrief }: { brief: Brief; setBrief: (b: B
               setBrief({
                 ...brief,
                 spaceTarget: t.id,
-                indoor: t.id === "inside" || t.id === "room",
-                useCase: t.id === "roof" ? "roof" : t.id === "room" ? "room" : brief.useCase === "roof" || brief.useCase === "room" ? "custom" : brief.useCase,
+                indoor: t.id === "inside" || t.id === "room" || t.id === "both",
+                useCase: t.id === "room" || t.id === "inside" ? "interior" : t.id === "roof" ? "custom" : brief.useCase === "interior" && t.id === "outside" ? "custom" : brief.useCase,
+                prompt:
+                  t.id === "roof"
+                    ? `${brief.prompt} Redesign the roof only.`
+                    : t.id === "inside" || t.id === "room"
+                      ? `${brief.prompt} Redesign the interior.`
+                      : t.id === "both"
+                        ? `${brief.prompt} Redesign inside and outside.`
+                        : brief.prompt,
               })
             }
             className={`rounded-full px-3 py-1.5 text-xs ${brief.spaceTarget === t.id ? "bg-[#d4b56a] text-[#07080b]" : "border border-white/10"}`}
