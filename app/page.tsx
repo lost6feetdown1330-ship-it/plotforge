@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { defaultBrief } from "@/lib/engine";
 import { dataUrl, elevSvg, isoSvg, planSvg, siteSvg } from "@/lib/draw";
@@ -9,8 +8,11 @@ import { SoPicker } from "@/components/SoPicker";
 import { SpacePicker } from "@/components/SpacePicker";
 import { Paywall } from "@/components/Paywall";
 import { TradeBlueprints } from "@/components/TradeBlueprints";
+import { Dashboard } from "@/components/Dashboard";
+import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import { readEntitlement } from "@/components/PayButton";
 import { canUnlockFull, type Entitlement } from "@/lib/billing";
+import { readBrief, readPacket, writeBrief, writePacket } from "@/lib/session";
 import { usd } from "@/lib/money";
 import type { Brief, Packet, UseCase } from "@/lib/types";
 
@@ -24,7 +26,6 @@ const USES: { id: UseCase; label: string }[] = [
 const REEL = [
   "https://videos.pexels.com/video-files/7578544/7578544-uhd_2560_1440_30fps.mp4",
   "https://videos.pexels.com/video-files/3773486/3773486-uhd_2560_1440_25fps.mp4",
-  "https://videos.pexels.com/video-files/5495907/5495907-uhd_2560_1440_25fps.mp4",
 ];
 
 export default function Page() {
@@ -43,11 +44,16 @@ export default function Page() {
   const streamRef = useRef<MediaStream | null>(null);
   useEffect(() => {
     setEnt(readEntitlement());
+    const savedB = readBrief();
+    const savedP = readPacket();
+    if (savedB) setBrief(savedB);
+    if (savedP) setPacket(savedP);
     const on = () => setEnt(readEntitlement());
     window.addEventListener("storage", on);
     const id = window.setInterval(on, 1200);
     return () => { stopCam(); window.removeEventListener("storage", on); window.clearInterval(id); };
   }, []);
+  useEffect(() => { writeBrief(brief); }, [brief]);
   const paid = canUnlockFull(ent);
   function stopCam() { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; setCamOn(false); }
   async function startCam() {
@@ -72,7 +78,7 @@ export default function Page() {
       const res = await fetch("/api/design", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brief }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Forge failed");
-      setPacket(data.packet); setActive(0); setTab(paid ? "prints" : "looks");
+      setPacket(data.packet); writePacket(data.packet); setActive(0); setTab(paid ? "prints" : "looks");
     } catch (e) { setErr(e instanceof Error ? e.message : "Forge failed"); }
     finally { setBusy(false); }
   }
@@ -85,29 +91,15 @@ export default function Page() {
 
   return (
     <main className="min-h-screen">
-      <header className="no-print sticky top-0 z-30 border-b border-white/10 bg-[#07080b]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-full border border-[#d4b56a]/40 text-[10px] tracking-[0.2em] text-[#d4b56a]">PF</span>
-            <div>
-              <p className="font-display text-2xl leading-none">Plotforge Atelier</p>
-              <p className="kpi">Any space · inside or out</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/pricing" className="text-xs uppercase tracking-[0.18em] text-[#d4b56a]">Seats from $9</Link>
-            {packet && paid && <button onClick={() => window.print()} className="rounded-full border border-white/15 px-4 py-2 text-xs tracking-[0.18em] uppercase">Print dossier</button>}
-          </div>
-        </div>
-      </header>
+      <SiteHeader right={packet && paid ? <button onClick={() => window.print()} className="rounded-full border border-white/15 px-4 py-2">Print</button> : undefined} />
       <section className="no-print relative mx-auto max-w-7xl px-5 pb-8 pt-8">
         <div className="film relative overflow-hidden rounded-[28px] border border-white/10">
           <video className="h-[42vh] min-h-[280px] w-full object-cover" autoPlay muted loop playsInline>
             <source src={REEL[0]} type="video/mp4" />
           </video>
           <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-12">
-            <p className="kpi text-[#d4b56a]">Room · roof · building · yard</p>
-            <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-6xl">Snap any space. Redesign inside, outside, or both.</h1>
+            <p className="kpi text-[#d4b56a]">Full desk · live checkout</p>
+            <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-6xl">Snap any space. Redesign it. Hand each trade a file.</h1>
           </div>
         </div>
       </section>
@@ -147,7 +139,7 @@ export default function Page() {
         </div>
       </section>
       {packet && scheme && (
-        <section className="mx-auto max-w-7xl px-5 pb-24">
+        <section className="mx-auto max-w-7xl px-5 pb-16">
           <p className="mb-4 text-sm text-[#d4b56a]">{scheme.legal.jurisdiction}</p>
           <div className="no-print mb-5 flex flex-wrap gap-2">
             {packet.schemes.map((s, i) => (
@@ -167,14 +159,15 @@ export default function Page() {
           <article className="glass hairline rounded-[28px] p-6 sm:p-8">
             <h2 className="font-display text-4xl">{scheme.name}</h2>
             <p className="mt-3 text-white/75">{scheme.pitch}</p>
-            {(tab === "looks" || tab === "board") && (
+            {tab === "board" && <Dashboard brief={packet.brief} scheme={scheme} />}
+            {tab === "looks" && (
               <div className="mt-8 grid gap-4 md:grid-cols-2">
                 <img src={dataUrl(isoSvg(packet.brief, scheme))} alt="iso" className="rounded-2xl" />
                 <img src={dataUrl(elevSvg(packet.brief, scheme))} alt="elev" className="rounded-2xl" />
               </div>
             )}
             {!paid && (tab === "prints" || tab === "trades" || tab === "bid" || tab === "clerk" || tab === "plans") && (
-              <Paywall reason="Looks stay free. Digital builder blueprints unlock with a $9 site packet." />
+              <Paywall reason="Looks stay free. Digital builder blueprints, clerk, and bids unlock with a $9 site packet." />
             )}
             {paid && tab === "plans" && (
               <div className="mt-8 space-y-4">
@@ -209,6 +202,7 @@ export default function Page() {
           </article>
         </section>
       )}
+      <SiteFooter />
     </main>
   );
 }
