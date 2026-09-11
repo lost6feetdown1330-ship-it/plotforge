@@ -8,9 +8,7 @@ export type UseCase =
   | "interior"
   | "deck"
   | "commercial"
-  | "custom"
-  | "room"
-  | "roof";
+  | "custom";
 
 export type Finish = "budget" | "solid" | "pretty";
 
@@ -28,7 +26,7 @@ export type Brief = {
   hasWater: boolean;
   slope: "flat" | "gentle" | "steep";
   indoor: boolean;
-  spaceTarget: SpaceTarget;
+  spaceTarget?: SpaceTarget;
 };
 
 export type TradeLine = {
