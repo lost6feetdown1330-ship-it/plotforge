@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { defaultBrief } from "@/lib/engine";
-import { dataUrl, elevSvg, isoSvg, planSvg, sheetIdFor, siteSvg, tradeBlueprint } from "@/lib/draw";
+import { dataUrl, elevSvg, isoSvg, planSvg, siteSvg } from "@/lib/draw";
 import { soAtlasSvg } from "@/lib/soMap";
 import { SoPicker } from "@/components/SoPicker";
 import { Paywall } from "@/components/Paywall";
+import { TradeBlueprints } from "@/components/TradeBlueprints";
 import { readEntitlement } from "@/components/PayButton";
 import { canUnlockFull, type Entitlement } from "@/lib/billing";
 import { usd } from "@/lib/money";
@@ -89,7 +90,7 @@ export default function Page() {
             <span className="grid h-9 w-9 place-items-center rounded-full border border-[#d4b56a]/40 text-[10px] tracking-[0.2em] text-[#d4b56a]">PF</span>
             <div>
               <p className="font-display text-2xl leading-none">Plotforge Atelier</p>
-              <p className="kpi">Quiet prices · $9 a lot</p>
+              <p className="kpi">Digital builder sheets · $9 a lot</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -104,8 +105,8 @@ export default function Page() {
             <source src={REEL[0]} type="video/mp4" />
           </video>
           <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-12">
-            <p className="kpi text-[#d4b56a]">Design desk · modest seats</p>
-            <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-6xl">Snap the space. Pay a lunch. Local shops build it.</h1>
+            <p className="kpi text-[#d4b56a]">One sheet per trade</p>
+            <h1 className="mt-3 max-w-3xl font-display text-5xl leading-[0.95] sm:text-6xl">Snap the space. Hand each shop a digital blueprint.</h1>
           </div>
         </div>
       </section>
@@ -171,7 +172,7 @@ export default function Page() {
               </div>
             )}
             {!paid && (tab === "prints" || tab === "trades" || tab === "bid" || tab === "clerk" || tab === "plans") && (
-              <Paywall reason="Looks stay free. Blueprints, clerk maps, bids, and the Southern Oregon atlas sheet unlock with a $9 site packet — or $17/mo if you keep using the desk." />
+              <Paywall reason="Looks stay free. Digital builder blueprints unlock with a $9 site packet." />
             )}
             {paid && tab === "plans" && (
               <div className="mt-8 space-y-4">
@@ -180,19 +181,9 @@ export default function Page() {
                 <img src={dataUrl(planSvg(packet.brief, scheme))} alt="plan" className="w-full rounded-2xl" />
               </div>
             )}
-            {paid && tab === "prints" && scheme.trades.map((t, i) => (
-              <figure key={t.trade} className="mt-8 overflow-hidden rounded-2xl bg-[#0a2f5c]">
-                <p className="px-4 py-3 text-[#d6ecff]">{sheetIdFor(t.trade, i)} · {t.trade}</p>
-                <img src={dataUrl(tradeBlueprint(packet.brief, scheme, t, i))} alt={t.trade} className="w-full" />
-              </figure>
-            ))}
-            {paid && tab === "trades" && scheme.trades.map((t, i) => (
-              <div key={t.trade} className="mt-6 rounded-2xl border border-white/10 p-4">
-                <h3 className="font-display text-2xl">{t.trade}</h3>
-                <p className="text-xs text-[#d4b56a]">{sheetIdFor(t.trade, i)} · {t.localShopType} · {usd(t.subtotal)}</p>
-                <img src={dataUrl(tradeBlueprint(packet.brief, scheme, t, i))} alt="" className="mt-3 w-full rounded-xl" />
-              </div>
-            ))}
+            {paid && (tab === "prints" || tab === "trades") && (
+              <TradeBlueprints brief={packet.brief} scheme={scheme} />
+            )}
             {paid && tab === "bid" && (
               <div className="mt-8">
                 <p className="font-display text-3xl">{usd(scheme.bidLow)} – {usd(scheme.bidHigh)}</p>
