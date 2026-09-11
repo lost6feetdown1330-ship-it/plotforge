@@ -1,9 +1,20 @@
-# Plotforge
-
-Snap any space. Design any space. Walk out with trade plans, required licenses, permits, and a legal-ready bid packet.
+# Plotforge Atelier
 
 Live: https://plotforge-mu.vercel.app
 
-**Delivery model:** Plotforge never puts a crew on site. Building, landscaping, construction, equipment operating, excavation, and tree work are all subcontracted to local licensed businesses. The app produces design options, drawings, and bid packages those shops answer.
+Snap a yard, room, roof, or building. The desk writes three schemes, a digital blueprint per trade, a clerk map for the Southern Oregon (and Hillsboro) counter, and a bid range. Local licensed shops do the physical work.
 
-The built-in Clerk companion maps Oregon CCB / BCD licenses, Hillsboro or Washington County permit gates, inspections, and bid clauses. Software cannot confer legality — a live CCB number on page 1 and a city stamp still have to come from humans.
+## Product
+- Camera or upload
+- Inside / outside / room / roof / both
+- $9 site packet (live Stripe)
+- SVG + JSON builder sheets
+- Conceptual only — not stamped, not a permit
+
+## Run
+```
+npm i
+npm run dev
+```
+
+Set live Stripe keys on Vercel. Do not commit secrets.
